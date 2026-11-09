@@ -32,6 +32,21 @@ const Dijkstra = (() => {
       return lista.length ? lista[0].valor : Infinity;
     };
 
+    // Vértices desde los que SÍ se puede llegar al destino (recorrido hacia atrás).
+    // Los demás quedan "después" del destino (o no llevan a él) y no se toman.
+    let llevaAlDestino = null;
+    if (destino !== null) {
+      llevaAlDestino = Array(n).fill(false);
+      llevaAlDestino[destino] = true;
+      const pila = [destino];
+      while (pila.length) {
+        const t = pila.pop();
+        for (let u = 0; u < n; u++) {
+          if (!llevaAlDestino[u] && matriz[u][t] > 0) { llevaAlDestino[u] = true; pila.push(u); }
+        }
+      }
+    }
+
     /* --- Iteración 0: etiquetado y fijación del origen --- */
     etiquetas[origen].push({ valor: 0, pred: null, iter: 0, tachada: null, fija: 0 });
     fijadoEn[origen] = 0;
@@ -46,6 +61,7 @@ const Dijkstra = (() => {
       const base = distancia(actual);
       const evaluaciones = [];
       const omitidos = [];   // adyacentes que ya estaban fijados
+      const podados = [];    // adyacentes posteriores al destino (no llevan a él)
 
       // a) Etiquetar los vértices adyacentes al vértice actual (fila "actual")
       for (let v = 0; v < n; v++) {
@@ -56,6 +72,12 @@ const Dijkstra = (() => {
         // es definitiva y el método no "regresa" a él.
         if (fijadoEn[v] !== null) {
           omitidos.push({ v, peso });
+          continue;
+        }
+
+        // Condición: no se toma un adyacente que no puede llegar al destino
+        if (llevaAlDestino && !llevaAlDestino[v]) {
+          podados.push({ v, peso });
           continue;
         }
 
@@ -95,6 +117,14 @@ const Dijkstra = (() => {
         else if (d === menor && d !== Infinity) candidatos.push(v);
       }
 
+      // Etiquetas vigentes de todos los no fijados (para mostrar la comparación)
+      const comparados = [];
+      for (let v = 0; v < n; v++) {
+        if (fijadoEn[v] === null && Number.isFinite(distancia(v))) {
+          comparados.push({ v, valor: distancia(v), preds: vigentes(v).map((e) => e.pred) });
+        }
+      }
+
       const elegido = candidatos.length ? candidatos[0] : null; // empate → orden alfabético
       if (elegido !== null) {
         fijadoEn[elegido] = k;
@@ -103,7 +133,7 @@ const Dijkstra = (() => {
 
       const llegoAlDestino = elegido !== null && elegido === destino;
       iteraciones.push({
-        numero: k, expandido: actual, base, evaluaciones, omitidos, elegido,
+        numero: k, expandido: actual, base, evaluaciones, omitidos, podados, comparados, elegido,
         empates: candidatos.slice(1), finEnDestino: llegoAlDestino,
       });
       // Criterio de parada: el destino quedó fijado (o no hay más candidatos)
