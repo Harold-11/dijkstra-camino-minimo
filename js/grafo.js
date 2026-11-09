@@ -12,6 +12,7 @@ const Grafo = (() => {
   const ESTADOS_FLECHA = ['base', 'arbol', 'evaluada', 'descartada', 'camino'];
 
   let svg, capaAristas, capaPesos, capaNodos;
+  let matrizActual = null;      // última matriz dibujada (para reorganizar)
   let posiciones = [];         // [{x, y}] por vértice
   let nombres = [];
   let aristas = [];            // [{i, j, peso, reciproca, path, peso: g}]
@@ -79,11 +80,12 @@ const Grafo = (() => {
      4. Distribución de los vértices: columnas de izquierda a derecha
         Igual que un grafo dibujado a mano: el primer vértice solo a la
         izquierda, el último solo a la derecha y los intermedios en
-        columnas de 2 o 3, en orden alfabético de arriba hacia abajo.
-        Como las aristas generadas van siempre hacia letras posteriores,
-        las flechas avanzan de izquierda a derecha.
+        columnas de 2 o 3. Los vértices se ubican según su ORDEN
+        TOPOLÓGICO (no por letra): como el grafo no tiene ciclos, todas
+        las flechas avanzan de izquierda a derecha aunque las letras
+        aparezcan en cualquier orden.
      --------------------------------------------------------------- */
-  function distribucionPorColumnas(n, { ancho = ANCHO, alto = ALTO, margenX = 64, margenY = 86, ajusteY = 6 } = {}) {
+  function distribucionPorColumnas(n, orden = null, { ancho = ANCHO, alto = ALTO, margenX = 64, margenY = 86, ajusteY = 6 } = {}) {
     const medio = alto / 2 + ajusteY;
     const intermedios = n - 2;
     const filas = intermedios <= 6 ? 2 : 3;
@@ -92,7 +94,7 @@ const Grafo = (() => {
     const pasoX = (ancho - 2 * margenX) / (totalColumnas - 1);
     const pasoY = (alto - 2 * margenY) / (filas - 1);
 
-    return Array.from({ length: n }, (_, v) => {
+    const ranuras = Array.from({ length: n }, (_, v) => {
       if (v === 0) return { x: margenX, y: medio };
       if (v === n - 1) return { x: ancho - margenX, y: medio };
       const k = v - 1;
@@ -103,6 +105,11 @@ const Grafo = (() => {
       const y = medio + (fila - (enColumna - 1) / 2) * pasoY;
       return { x: margenX + (col + 1) * pasoX, y };
     });
+    // ranura k → vértice orden[k]
+    const ord = orden && orden.length === n ? orden : ranuras.map((_, k) => k);
+    const posicionesPorVertice = Array(n);
+    ord.forEach((v, k) => { posicionesPorVertice[v] = ranuras[k]; });
+    return posicionesPorVertice;
   }
 
   /**
@@ -142,7 +149,10 @@ const Grafo = (() => {
   function dibujar(matriz, listaNombres, { reiniciarPosiciones = false } = {}) {
     const n = matriz.length;
     nombres = listaNombres;
-    if (reiniciarPosiciones || posiciones.length !== n) posiciones = distribucionPorColumnas(n);
+    matrizActual = matriz;
+    if (reiniciarPosiciones || posiciones.length !== n) {
+      posiciones = distribucionPorColumnas(n, Matriz.ordenTopologico(matriz));
+    }
 
     capaAristas.replaceChildren();
     capaPesos.replaceChildren();
@@ -240,7 +250,7 @@ const Grafo = (() => {
 
   /** Vuelve a la distribución original en columnas. */
   function reorganizar() {
-    posiciones = distribucionPorColumnas(posiciones.length);
+    posiciones = distribucionPorColumnas(posiciones.length, matrizActual ? Matriz.ordenTopologico(matrizActual) : null);
     actualizarGeometria();
   }
 

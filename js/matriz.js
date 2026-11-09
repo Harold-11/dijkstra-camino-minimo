@@ -8,7 +8,7 @@ const Matriz = (() => {
   const N_MAX = 15;       // máximo de vértices exigido por el enunciado
   const PESO_MIN = 1;
   const PESO_MAX = 999;
-  const ALCANCE = 3;      // generación aleatoria: cada vértice conecta solo con los 3 siguientes
+  const ALCANCE = 3;      // generación aleatoria: cada vértice conecta solo con los 3 siguientes de un orden aleatorio
 
   /* ---------------------------------------------------------------
      2. Nombres de los vértices (A, B, C, ...)
@@ -48,58 +48,92 @@ const Matriz = (() => {
   const enteroAleatorio = (min, max) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
 
+  /** Mezcla aleatoria (Fisher–Yates) de los índices 0..n−1. */
+  function permutacion(n) {
+    const p = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    return p;
+  }
+
   /**
    * Genera una matriz ponderada de un grafo DIRIGIDO y SIN CICLOS.
    *
-   * Garantía de que no hay ciclos: solo se crean aristas i → j con i < j
-   * (matriz triangular superior).
-   * Como cualquier recorrido avanza siempre hacia vértices "posteriores",
-   * es imposible volver a un vértice ya visitado.
-   *
-   * Aristas solo entre vértices CERCANOS: cada vértice conecta como máximo
-   * con los ALCANCE siguientes (A con B, C o D; nunca A con H). Así, llegar
-   * a un vértice lejano exige pasar por varios intermedios y el algoritmo
-   * tiene que comparar etiquetas de verdad, en lugar de que casi siempre
-   * gane una sola arista directa.
+   * 1. Se sortea un ORDEN aleatorio de los vértices, por ejemplo
+   *    D, A, G, B, H, C, F, E. Ese orden cambia en cada generación, así que
+   *    el grafo ya no empieza siempre en A ni termina siempre en H.
+   * 2. Solo se crean aristas que avanzan en ese orden (de una posición a
+   *    otra posterior). Por eso es imposible volver a un vértice ya
+   *    visitado: el grafo NO tiene ciclos, sin importar las letras.
+   * 3. Cada vértice conecta como máximo con los ALCANCE siguientes del
+   *    orden; así la ruta mínima pasa por varios vértices intermedios.
    *
    * @param {number} n                 número de vértices
    * @param {object} opciones
-   * @param {number} opciones.densidad probabilidad (0–1) de que exista cada arista
-   *                                   i → j entre vértices cercanos (i < j ≤ i + ALCANCE)
+   * @param {number} opciones.densidad probabilidad (0–1) de cada arista posible
    * @param {number} opciones.min      peso mínimo
    * @param {number} opciones.max      peso máximo
    * @param {boolean} opciones.garantizarCamino
-   *        si es true, todo vértice distinto de A recibe al menos una arista
-   *        desde un vértice anterior cercano; así todos son alcanzables desde A.
-   *        Además, todo vértice distinto del último tiene al menos una salida.
+   *        si es true, todos los vértices son alcanzables desde el primero
+   *        del orden (el "vértice inicial") y ninguno intermedio queda sin salida.
+   * @returns {{matriz: number[][], orden: number[]}}
    */
   function generarAleatoria(n, { densidad = 0.5, min = 1, max = 20, garantizarCamino = true } = {}) {
     const m = crearVacia(n);
-    const ultimoCercano = (i) => Math.min(n - 1, i + ALCANCE);
+    const orden = permutacion(n);                 // orden[k] = vértice en la posición k
+    const arista = (a, b, w) => { m[orden[a]][orden[b]] = w; };
+    const hay = (a, b) => m[orden[a]][orden[b]] > 0;
+    const ultimoCercano = (a) => Math.min(n - 1, a + ALCANCE);
 
-    // 1. Aristas aleatorias solo hacia vértices posteriores y cercanos
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j <= ultimoCercano(i); j++) {
-        if (Math.random() < densidad) m[i][j] = enteroAleatorio(min, max);
+    // 1. Aristas aleatorias solo hacia posiciones posteriores y cercanas
+    for (let a = 0; a < n; a++) {
+      for (let b = a + 1; b <= ultimoCercano(a); b++) {
+        if (Math.random() < densidad) arista(a, b, enteroAleatorio(min, max));
       }
     }
 
     if (garantizarCamino) {
-      // 2. Cada vértice j > 0 debe tener al menos una arista de entrada desde
-      //    algún i cercano con i < j: por inducción, todos son alcanzables desde A.
-      for (let j = 1; j < n; j++) {
-        const desde = Math.max(0, j - ALCANCE);
-        const tieneEntrada = m.some((fila, i) => i < j && fila[j] > 0);
-        if (!tieneEntrada) m[enteroAleatorio(desde, j - 1)][j] = enteroAleatorio(min, max);
+      // 2. Cada posición b > 0 recibe al menos una arista desde una anterior
+      //    cercana: por inducción, todos son alcanzables desde orden[0].
+      for (let b = 1; b < n; b++) {
+        let tieneEntrada = false;
+        for (let a = 0; a < b; a++) if (hay(a, b)) tieneEntrada = true;
+        if (!tieneEntrada) arista(enteroAleatorio(Math.max(0, b - ALCANCE), b - 1), b, enteroAleatorio(min, max));
       }
-      // 3. Cada vértice i < n − 1 debe tener al menos una arista de salida
-      //    hacia algún j > i cercano (ningún vértice intermedio queda "sin salida").
-      for (let i = 0; i < n - 1; i++) {
-        const tieneSalida = m[i].some((w, j) => j > i && w > 0);
-        if (!tieneSalida) m[i][enteroAleatorio(i + 1, ultimoCercano(i))] = enteroAleatorio(min, max);
+      // 3. Cada posición a < n − 1 tiene al menos una salida.
+      for (let a = 0; a < n - 1; a++) {
+        let tieneSalida = false;
+        for (let b = a + 1; b < n; b++) if (hay(a, b)) tieneSalida = true;
+        if (!tieneSalida) arista(a, enteroAleatorio(a + 1, ultimoCercano(a)), enteroAleatorio(min, max));
       }
     }
-    return m;
+    return { matriz: m, orden };
+  }
+
+  /**
+   * Orden topológico (algoritmo de Kahn). En caso de empate se toma el
+   * vértice de menor índice. Si el grafo tuviera un ciclo, los vértices
+   * del ciclo se agregan al final en orden alfabético.
+   */
+  function ordenTopologico(m) {
+    const n = m.length;
+    const entrada = Array(n).fill(0);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j && m[i][j] > 0) entrada[j]++;
+    const listos = [];
+    for (let v = 0; v < n; v++) if (entrada[v] === 0) listos.push(v);
+    const orden = [];
+    while (listos.length) {
+      listos.sort((x, y) => x - y);
+      const u = listos.shift();
+      orden.push(u);
+      for (let v = 0; v < n; v++) {
+        if (u !== v && m[u][v] > 0 && --entrada[v] === 0) listos.push(v);
+      }
+    }
+    for (let v = 0; v < n; v++) if (!orden.includes(v)) orden.push(v);
+    return orden;
   }
 
   /**
@@ -282,15 +316,37 @@ const Matriz = (() => {
   ];
 
   /* ---------------------------------------------------------------
+     8b. Aplicación desarrollada: SAMU (ambulancia → emergencia)
+        Pesos en minutos. Respuesta: A → C → B → D → E → G = 13 min.
+        El algoritmo se detiene al fijar G; F queda etiquetado sin fijar.
+     --------------------------------------------------------------- */
+  const CASO_SAMU = {
+    titulo: 'Caso SAMU',
+    origen: 0,   // A: base de la ambulancia
+    destino: 6,  // G: lugar de la emergencia
+    lugares: ['Base SAMU', 'Cruce 1', 'Cruce 2', 'Cruce 3', 'Cruce 4', 'Cruce 5', 'Emergencia'],
+    matriz: [
+      //A  B  C  D   E  F  G
+      [0, 4, 2, 0, 0, 0, 0], // A Base SAMU
+      [0, 0, 0, 5, 0, 0, 0], // B Cruce 1
+      [0, 1, 0, 8, 10, 0, 0], // C Cruce 2
+      [0, 0, 0, 0, 2, 6, 0], // D Cruce 3
+      [0, 0, 0, 0, 0, 0, 3], // E Cruce 4
+      [0, 0, 0, 0, 0, 0, 1], // F Cruce 5
+      [0, 0, 0, 0, 0, 0, 0], // G Emergencia
+    ],
+  };
+
+  /* ---------------------------------------------------------------
      9. API pública del módulo
      --------------------------------------------------------------- */
   return {
     N_MIN, N_MAX, PESO_MIN, PESO_MAX,
     nombre, nombres,
     crearVacia, clonar, redimensionar,
-    generarAleatoria, buscarCiclo,
+    generarAleatoria, ordenTopologico, buscarCiclo,
     validarCelda, contarAristas, pesoMaximo,
     desdeTexto, aTexto,
-    CASOS,
+    CASOS, CASO_SAMU,
   };
 })();
