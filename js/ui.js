@@ -792,9 +792,14 @@
          no se ${it.omitidos.length > 1 ? 'vuelven' : 'vuelve'} a etiquetar (el método no regresa a un vértice fijado).</p>`
       : '';
 
+    const podadosTxt = (it.podados || []).length
+      ? `<p class="nota-fijados">${enumerar(it.podados.map((o) => N(o.v)))} no se ${it.podados.length > 1 ? 'toman' : 'toma'}:
+         ${it.podados.length > 1 ? 'quedan' : 'queda'} después del destino ${N(res.destino)} (desde ${it.podados.length > 1 ? 'ellos' : 'ahí'} no se puede llegar a ${N(res.destino)}).</p>`
+      : '';
+
     if (it.evaluaciones.length === 0) {
       html += (it.omitidos || []).length
-        ? `<p>Desde <span class="v">${N(u)}</span> (acumulado ${it.base}) no hay vértices sin fijar por etiquetar.</p>${omitidosTxt}`
+        ? `<p>Desde <span class="v">${N(u)}</span> (acumulado ${it.base}) no hay vértices por etiquetar.</p>${omitidosTxt}`
         : `<p><span class="v">${N(u)}</span> (acumulado ${it.base}) no tiene aristas salientes:
                su fila en la matriz está vacía, así que no se etiqueta ningún vértice.</p>`;
     } else {
@@ -824,12 +829,16 @@
         }
         html += `<li class="li--${e.resultado}"><span class="v">${N(e.v)}:</span> ${texto}</li>`;
       });
-      html += '</ul>' + omitidosTxt;
+      html += '</ul>' + omitidosTxt + podadosTxt;
     }
 
     // Elección del siguiente vértice a fijar
     if (it.elegido !== null) {
       const etiquetasElegido = est[it.elegido].vigentes.map((e) => etiquetaHTML(e.valor, e.pred, e.iter, 'fija')).join(' ');
+      const comp = (it.comparados || []).map((c) => `<span class="v">${N(c.v)}</span> ${c.valor}`).join(' · ');
+      if (it.comparados && it.comparados.length > 1) {
+        html += `<p class="nota-fijados">Se comparan los vértices etiquetados sin fijar: ${comp}.</p>`;
+      }
       html += `<p class="elige">Se fija el vértice no fijado con menor acumulado:
                <span class="v">${N(it.elegido)}</span> ${etiquetasElegido}.`;
       if (it.empates.length) {
