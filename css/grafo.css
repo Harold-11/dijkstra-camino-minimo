@@ -61,10 +61,10 @@
 /* --- Aristas: el color indica el estado en cada iteración --- */
 .arista {
   fill: none;
-  stroke: var(--border-strong);
-  stroke-width: 2;
+  stroke: #6f7ba3;
+  stroke-width: 2.2;
 }
-.flecha { fill: var(--border-strong); }
+.flecha { fill: #8a94bd; }
 .flecha--arbol { fill: var(--primary); }
 .flecha--evaluada { fill: var(--accent); }
 .flecha--descartada { fill: var(--danger); }

@@ -64,7 +64,7 @@ const Grafo = (() => {
         id: `flecha-${estado}`,
         viewBox: '0 0 10 10',
         refX: 9, refY: 5,
-        markerWidth: 11, markerHeight: 11,
+        markerWidth: 15, markerHeight: 15,
         markerUnits: 'userSpaceOnUse',
         orient: 'auto',
       }, defs);
