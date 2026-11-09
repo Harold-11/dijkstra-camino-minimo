@@ -642,6 +642,9 @@
     const res = Dijkstra.resolver(estado.matriz, estado.origen, estado.destino);
     estado.resultado = res;
     estado.caminos = Dijkstra.caminos(res, estado.destino);
+    // Al resolver, los vértices se reacomodan por orden topológico (como en el
+    // modo automático), para que todas las flechas vayan de izquierda a derecha.
+    dibujarGrafo({ reiniciar: true });
     estado.totalPasos = res.iteraciones.length + 1; // + paso final "Resultado"
 
     dom.solVacia.hidden = true;
