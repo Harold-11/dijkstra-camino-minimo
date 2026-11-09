@@ -8,6 +8,9 @@ const Dijkstra = (() => {
   /**
    * @param {number[][]} matriz matriz ponderada dirigida (0 = sin arista)
    * @param {number} origen     índice del vértice origen
+   * @param {number|null} [destino] índice del vértice destino. Si se indica,
+   *        el algoritmo TERMINA en cuanto el destino queda fijado (método de
+   *        etiquetas de la clase): los vértices restantes ya no se analizan.
    * @returns {object} resultado con etiquetas, iteraciones y distancias
    *
    * Cada etiqueta guarda su "vida" para poder reconstruir la tabla en
@@ -15,7 +18,7 @@ const Dijkstra = (() => {
    *   { valor, pred, iter, tachada: iteración en que se tachó | null,
    *                        fija:    iteración en que se fijó  | null }
    */
-  function resolver(matriz, origen) {
+  function resolver(matriz, origen, destino = null) {
     const n = matriz.length;
     const etiquetas = Array.from({ length: n }, () => []);
     const fijadoEn = Array(n).fill(null);   // iteración en la que se fijó cada vértice
@@ -42,11 +45,19 @@ const Dijkstra = (() => {
       k++;
       const base = distancia(actual);
       const evaluaciones = [];
+      const omitidos = [];   // adyacentes que ya estaban fijados
 
       // a) Etiquetar los vértices adyacentes al vértice actual (fila "actual")
       for (let v = 0; v < n; v++) {
         const peso = matriz[actual][v];
         if (v === actual || !(peso > 0)) continue;
+
+        // Un vértice ya fijado NO se vuelve a etiquetar: su distancia mínima
+        // es definitiva y el método no "regresa" a él.
+        if (fijadoEn[v] !== null) {
+          omitidos.push({ v, peso });
+          continue;
+        }
 
         const previa = distancia(v);
         const anteriores = vigentes(v).map((e) => ({ valor: e.valor, pred: e.pred, iter: e.iter }));
@@ -90,17 +101,24 @@ const Dijkstra = (() => {
         vigentes(elegido).forEach((e) => { e.fija = k; });
       }
 
-      iteraciones.push({ numero: k, expandido: actual, base, evaluaciones, elegido, empates: candidatos.slice(1) });
-      actual = elegido;
+      const llegoAlDestino = elegido !== null && elegido === destino;
+      iteraciones.push({
+        numero: k, expandido: actual, base, evaluaciones, omitidos, elegido,
+        empates: candidatos.slice(1), finEnDestino: llegoAlDestino,
+      });
+      // Criterio de parada: el destino quedó fijado (o no hay más candidatos)
+      actual = llegoAlDestino ? null : elegido;
     }
 
     /* --- Resultados finales --- */
+    // Solo los vértices FIJADOS tienen distancia mínima definitiva
     const distancias = Array.from({ length: n }, (_, v) => distancia(v));
+    const fijados = Array.from({ length: n }, (_, v) => fijadoEn[v] !== null);
     const predecesores = Array.from({ length: n }, (_, v) =>
       vigentes(v).map((e) => e.pred).filter((p) => p !== null)
     );
 
-    return { n, origen, etiquetas, fijadoEn, iteraciones, distancias, predecesores };
+    return { n, origen, destino, etiquetas, fijadoEn, fijados, iteraciones, distancias, predecesores };
   }
 
   /* ---------------------------------------------------------------

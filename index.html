@@ -63,14 +63,14 @@
        sobrescribir a los anteriores (responsive.css siempre al final).
        ?v=N: al cambiar CSS o JS, sube el número para que el navegador no
        use la versión guardada -->
-  <link rel="stylesheet" href="css/base.css?v=9">
-  <link rel="stylesheet" href="css/controles.css?v=9">
-  <link rel="stylesheet" href="css/layout.css?v=9">
-  <link rel="stylesheet" href="css/calculadora.css?v=9">
-  <link rel="stylesheet" href="css/grafo.css?v=9">
-  <link rel="stylesheet" href="css/solucion.css?v=9">
-  <link rel="stylesheet" href="css/contenido.css?v=9">
-  <link rel="stylesheet" href="css/responsive.css?v=9">
+  <link rel="stylesheet" href="css/base.css?v=10">
+  <link rel="stylesheet" href="css/controles.css?v=10">
+  <link rel="stylesheet" href="css/layout.css?v=10">
+  <link rel="stylesheet" href="css/calculadora.css?v=10">
+  <link rel="stylesheet" href="css/grafo.css?v=10">
+  <link rel="stylesheet" href="css/solucion.css?v=10">
+  <link rel="stylesheet" href="css/contenido.css?v=10">
+  <link rel="stylesheet" href="css/responsive.css?v=10">
 
   <!-- ================================================================
        DATOS ESTRUCTURADOS (schema.org) PARA BUSCADORES
@@ -130,7 +130,7 @@
         <a href="#objetivo">Objetivo</a>
         <a href="#programa">Programa</a>
         <a href="#procedimiento">Procedimiento</a>
-        <a href="#aplicaciones">Aplicaciones</a>
+        <a href="#aplicaciones">Aplicación</a>
         <a href="#casos">Casos</a>
       </nav>
     </div>
@@ -230,9 +230,9 @@
               <label class="check">
                 <input type="checkbox" id="garantizar" checked>
                 <span class="check__caja" aria-hidden="true"></span>
-                <span>Garantizar que todos los vértices sean alcanzables desde A</span>
+                <span>Garantizar que todos los vértices sean alcanzables desde el vértice inicial</span>
               </label>
-              <p class="campo__ayuda campo__ayuda--nota">El grafo se genera dirigido y <strong>sin ciclos</strong>: las aristas solo van de un vértice a uno de los 3 siguientes (A → B, C o D; nunca B → A ni A → H). Así la ruta mínima pasa por varios vértices.</p>
+              <p class="campo__ayuda campo__ayuda--nota">El grafo se genera dirigido y <strong>sin ciclos</strong>: en cada generación se sortea un orden de las letras (por ejemplo D → A → G → B…) y las aristas solo avanzan en ese orden, hacia uno de los 3 vértices siguientes. Así el grafo no empieza siempre en A ni termina en H, nunca se puede regresar a un vértice y la ruta mínima pasa por varios vértices.</p>
               <button class="btn btn--primario btn--bloque" id="btn-generar" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 14h6v6h-6zM14 4l6 6M20 4l-6 6M4 14l6 6M10 14l-6 6"/></svg>
                 Generar matriz aleatoria
@@ -459,7 +459,7 @@
             <span class="paso__num">5</span>
             <div>
               <h3>Fin y ruta</h3>
-              <p>Se repiten los pasos 2 a 4, aumentando la iteración en 1 cada vez (k = 1, 2, 3…), hasta que no queden vértices etiquetados sin fijar. La distancia mínima es el acumulado del destino, y la ruta se lee de atrás hacia adelante: del destino a su predecesor, de este al suyo, hasta llegar al origen.</p>
+              <p>Se repiten los pasos 2 a 4, aumentando la iteración en 1 cada vez (k = 1, 2, 3…), hasta que <strong>el vértice destino queda fijado</strong>: en ese momento el algoritmo termina y ya no se analizan los demás vértices (si el destino nunca recibe etiqueta, no existe camino). Un vértice que ya está fijado no se vuelve a etiquetar. La distancia mínima es el acumulado del destino, y la ruta se lee de atrás hacia adelante: del destino a su predecesor, de este al suyo, hasta llegar al origen.</p>
             </div>
           </li>
         </ol>
@@ -467,65 +467,61 @@
     </section>
 
     <!-- ==============================================================
-         APLICACIONES (rúbrica: al menos 3, cada una en una organización
-         y con una necesidad)
+         APLICACIÓN: un caso real desarrollado con el algoritmo (SAMU)
          ============================================================== -->
     <section class="seccion" id="aplicaciones" aria-labelledby="titulo-aplicaciones">
       <div class="contenedor">
         <header class="seccion__cabecera">
-          <h2 id="titulo-aplicaciones">Aplicaciones en organizaciones del Perú</h2>
+          <h2 id="titulo-aplicaciones">Aplicación: ruta de una ambulancia del SAMU</h2>
           <p class="seccion__lead">
-            Cada aplicación parte de una organización real y de una necesidad que se modela como un grafo
-            dirigido ponderado: los puntos son vértices, las conexiones son aristas y el peso es el tiempo,
-            la distancia o la latencia. Son escenarios de aplicación propuestos por el equipo.
+            El proyecto se aplica a una sola organización real. La red de calles se modela como un grafo
+            dirigido ponderado y el programa muestra cómo Dijkstra encuentra, paso a paso, la ruta más rápida
+            de la ambulancia hasta la emergencia.
           </p>
         </header>
-        <ul class="acordeon">
-          <li class="acordeon__item acordeon__item--atu" tabindex="0">
-            <div class="acordeon__contenido">
-              <p class="acordeon__rubro">Transporte urbano</p>
-              <h3>ATU · Lima y Callao</h3>
-              <div class="acordeon__detalle">
-                <p><strong>Organización:</strong> Autoridad de Transporte Urbano para Lima y Callao (ATU).</p>
-                <p><strong>Necesidad:</strong> indicar al pasajero la combinación de rutas con menor tiempo de viaje entre dos paraderos.</p>
-                <p><strong>Modelo:</strong> paraderos = vértices; tramos con sentido de circulación = aristas; minutos de viaje = pesos.</p>
-              </div>
-            </div>
-          </li>
-          <li class="acordeon__item acordeon__item--olva" tabindex="0">
-            <div class="acordeon__contenido">
-              <p class="acordeon__rubro">Logística</p>
-              <h3>Olva Courier</h3>
-              <div class="acordeon__detalle">
-                <p><strong>Organización:</strong> Olva Courier, empresa peruana de mensajería y paquetería.</p>
-                <p><strong>Necesidad:</strong> definir la ruta de reparto de menor distancia desde un centro de distribución hasta la dirección del cliente.</p>
-                <p><strong>Modelo:</strong> centro de distribución, agencias y clientes = vértices; vías = aristas; kilómetros = pesos.</p>
-              </div>
-            </div>
-          </li>
-          <li class="acordeon__item acordeon__item--movistar" tabindex="0">
-            <div class="acordeon__contenido">
-              <p class="acordeon__rubro">Telecomunicaciones</p>
-              <h3>Movistar · Telefónica del Perú</h3>
-              <div class="acordeon__detalle">
-                <p><strong>Organización:</strong> Telefónica del Perú, operador de la marca Movistar.</p>
-                <p><strong>Necesidad:</strong> encaminar los datos entre dos nodos de su red por la ruta de menor latencia.</p>
-                <p><strong>Modelo:</strong> routers = vértices; enlaces = aristas; milisegundos de latencia = pesos.</p>
-              </div>
-            </div>
-          </li>
+        <ul class="acordeon acordeon--uno">
           <li class="acordeon__item acordeon__item--samu" tabindex="0">
             <div class="acordeon__contenido">
               <p class="acordeon__rubro">Salud y emergencias</p>
               <h3>SAMU · MINSA</h3>
               <div class="acordeon__detalle">
                 <p><strong>Organización:</strong> Sistema de Atención Móvil de Urgencias (SAMU) del Ministerio de Salud.</p>
-                <p><strong>Necesidad:</strong> encontrar el recorrido más rápido de la ambulancia hasta la emergencia y luego hasta el hospital.</p>
-                <p><strong>Modelo:</strong> base, cruces y hospitales = vértices; calles con sentido de tránsito = aristas; minutos = pesos.</p>
+                <p><strong>Necesidad:</strong> que la ambulancia llegue a la emergencia en el menor tiempo posible, eligiendo entre varias rutas.</p>
+                <p><strong>Modelo:</strong> base, cruces y emergencia = vértices; calles con sentido de tránsito = aristas; minutos de recorrido = pesos.</p>
               </div>
             </div>
           </li>
         </ul>
+
+        <div class="rejilla aplicacion">
+          <div class="bloque">
+            <h3>Red del caso (pesos en minutos)</h3>
+            <table class="tabla-lugares">
+              <thead><tr><th>Vértice</th><th>Lugar</th><th>Sale hacia (minutos)</th></tr></thead>
+              <tbody>
+                <tr><td>A</td><td>Base SAMU (origen)</td><td>B (4), C (2)</td></tr>
+                <tr><td>B</td><td>Cruce 1</td><td>D (5)</td></tr>
+                <tr><td>C</td><td>Cruce 2</td><td>B (1), D (8), E (10)</td></tr>
+                <tr><td>D</td><td>Cruce 3</td><td>E (2), F (6)</td></tr>
+                <tr><td>E</td><td>Cruce 4</td><td>G (3)</td></tr>
+                <tr><td>F</td><td>Cruce 5</td><td>G (1)</td></tr>
+                <tr><td>G</td><td>Emergencia (destino)</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bloque">
+            <h3>Cómo lo resuelve Dijkstra</h3>
+            <ol class="lista-pasos">
+              <li>Se fija A con [0, –]. Desde A: B = [4, A] y C = [2, A]. Se fija C (2).</li>
+              <li>Desde C: B = 2 + 1 = 3 &lt; 4, se tacha [4, A]; D = [10, C]; E = [12, C]. Se fija B (3).</li>
+              <li>Desde B: D = 3 + 5 = 8 &lt; 10, se tacha [10, C]. Se fija D (8).</li>
+              <li>Desde D: E = 8 + 2 = 10 &lt; 12, se tacha [12, C]; F = [14, D]. Se fija E (10).</li>
+              <li>Desde E: G = 10 + 3 = 13. Se fija G (13 &lt; 14): el destino quedó fijado y el algoritmo termina.</li>
+            </ol>
+            <p><strong>Resultado:</strong> A → C → B → D → E → G, con <strong>13 minutos</strong>. La ruta que parece directa (A → B, 4 min) no es la mejor.</p>
+            <button class="btn btn--primario" id="btn-caso-samu" type="button">Resolver este caso en la calculadora</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -563,9 +559,9 @@
   <!-- ================================================================
        SCRIPTS (en este orden: datos, algoritmo, dibujo, interfaz)
        ================================================================ -->
-  <script src="js/matriz.js?v=9" defer></script>
-  <script src="js/dijkstra.js?v=9" defer></script>
-  <script src="js/grafo.js?v=9" defer></script>
-  <script src="js/ui.js?v=9" defer></script>
+  <script src="js/matriz.js?v=10" defer></script>
+  <script src="js/dijkstra.js?v=10" defer></script>
+  <script src="js/grafo.js?v=10" defer></script>
+  <script src="js/ui.js?v=10" defer></script>
 </body>
 </html>

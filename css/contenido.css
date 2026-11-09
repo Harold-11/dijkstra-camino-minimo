@@ -82,9 +82,6 @@
 }
 /* Las rutas van en el CSS (no en style=""): una url() dentro de una
    variable se resuelve respecto de esta hoja, no del HTML */
-.acordeon__item--atu { --img: url('../assets/img/app-atu.webp'); }
-.acordeon__item--olva { --img: url('../assets/img/app-olva.webp'); }
-.acordeon__item--movistar { --img: url('../assets/img/app-movistar.webp'); }
 .acordeon__item--samu { --img: url('../assets/img/app-samu.webp'); }
 .acordeon__item::after {
   content: '';
@@ -218,3 +215,14 @@
 .toast__icono svg { width: 100%; height: 100%; }
 .toast--ok .toast__icono { color: var(--ok); }
 .toast--error .toast__icono { color: var(--danger); }
+
+/* Aplicación única (SAMU): franja con foto + caso desarrollado */
+.acordeon--uno { height: clamp(300px, 34vw, 400px); }
+.aplicacion { margin-top: 18px; }
+.tabla-lugares { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.tabla-lugares th, .tabla-lugares td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; color: var(--text-2); }
+.tabla-lugares th { color: var(--text); font-weight: 650; }
+.tabla-lugares td:first-child { font-family: var(--mono); color: var(--primary); font-weight: 700; }
+.lista-pasos { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; color: var(--text-2); }
+.aplicacion .btn { margin-top: 14px; }
+@media (max-width: 860px) { .aplicacion { grid-template-columns: 1fr; } }

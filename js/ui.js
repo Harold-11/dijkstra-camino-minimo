@@ -248,13 +248,14 @@
       toast('El peso mínimo no puede ser mayor que el máximo.', 'error');
       return;
     }
-    const m = Matriz.generarAleatoria(estado.n, {
+    const { matriz: m, orden } = Matriz.generarAleatoria(estado.n, {
       densidad: Number(dom.densidad.value) / 100,
       min, max,
       garantizarCamino: dom.garantizar.checked,
     });
     cargarMatriz(m);
-    toast(`Matriz ${estado.n}×${estado.n} generada con ${Matriz.contarAristas(m)} aristas.`, 'ok');
+    toast(`Matriz ${estado.n}×${estado.n} generada con ${Matriz.contarAristas(m)} aristas. ` +
+      `Vértice inicial (sin flechas de entrada): ${N(orden[0])}.`, 'ok', 4500);
   });
 
   /* --- Ingreso manual --- */
@@ -287,6 +288,13 @@
     cargarMatriz(Matriz.clonar(caso.matriz), { origen: caso.origen, destino: caso.destino });
     toast(`${caso.titulo} cargado (${N(caso.origen)} → ${N(caso.destino)}). Pulsa “Resolver con Dijkstra”.`, 'ok', 4200);
   }
+
+  // Aplicación SAMU: carga la red del caso real en la calculadora
+  const btnSamu = $('#btn-caso-samu');
+  if (btnSamu) btnSamu.addEventListener('click', () => {
+    cargarCaso(Matriz.CASO_SAMU);
+    irA(dom.cardGrafo);
+  });
 
   /** Punto único para establecer una matriz nueva. */
   function cargarMatriz(m, { origen = null, destino = null } = {}) {
@@ -631,7 +639,7 @@
   function resolver() {
     if (dom.btnResolver.disabled) return;
     detener();
-    const res = Dijkstra.resolver(estado.matriz, estado.origen);
+    const res = Dijkstra.resolver(estado.matriz, estado.origen, estado.destino);
     estado.resultado = res;
     estado.caminos = Dijkstra.caminos(res, estado.destino);
     estado.totalPasos = res.iteraciones.length + 1; // + paso final "Resultado"
@@ -779,8 +787,15 @@
     const u = it.expandido;
     let html = `<p class="narracion__titulo">Iteración ${k} · Adyacentes a ${N(u)}</p>`;
 
+    const omitidosTxt = (it.omitidos || []).length
+      ? `<p class="nota-fijados">${enumerar(it.omitidos.map((o) => N(o.v)))} ${it.omitidos.length > 1 ? 'ya están fijados' : 'ya está fijado'}:
+         no se ${it.omitidos.length > 1 ? 'vuelven' : 'vuelve'} a etiquetar (el método no regresa a un vértice fijado).</p>`
+      : '';
+
     if (it.evaluaciones.length === 0) {
-      html += `<p><span class="v">${N(u)}</span> (acumulado ${it.base}) no tiene aristas salientes:
+      html += (it.omitidos || []).length
+        ? `<p>Desde <span class="v">${N(u)}</span> (acumulado ${it.base}) no hay vértices sin fijar por etiquetar.</p>${omitidosTxt}`
+        : `<p><span class="v">${N(u)}</span> (acumulado ${it.base}) no tiene aristas salientes:
                su fila en la matriz está vacía, así que no se etiqueta ningún vértice.</p>`;
     } else {
       const adyacentes = enumerar(it.evaluaciones.map((e) => N(e.v)));
@@ -809,7 +824,7 @@
         }
         html += `<li class="li--${e.resultado}"><span class="v">${N(e.v)}:</span> ${texto}</li>`;
       });
-      html += '</ul>';
+      html += '</ul>' + omitidosTxt;
     }
 
     // Elección del siguiente vértice a fijar
@@ -821,7 +836,8 @@
         html += ` Empate con ${enumerar(it.empates.map(N))}: también pudo elegirse (se toma el primero en orden alfabético).`;
       }
       if (it.elegido === estado.destino) {
-        html += ` <strong>¡El destino ${N(estado.destino)} queda fijado!</strong> Su distancia mínima ya no cambiará.`;
+        html += ` <strong>¡El destino ${N(estado.destino)} queda fijado!</strong> Su distancia mínima ya no cambiará,
+                 así que <strong>el algoritmo termina aquí</strong>: los vértices restantes no se analizan.`;
       }
       html += '</p>';
     } else {
@@ -848,7 +864,8 @@
         <p>El destino <span class="v">${N(d)}</span> nunca recibió una etiqueta:
            <strong>no existe un camino dirigido</strong> de ${N(o)} a ${N(d)}.</p>
         <p class="elige">Revisa la matriz: ninguna secuencia de aristas (respetando su sentido) conecta ambos vértices.
-        ${d < o ? `Como el grafo no tiene ciclos y sus aristas avanzan hacia vértices posteriores, conviene elegir un destino posterior a ${N(o)}.` : ''}</p>`;
+        Como el grafo no tiene ciclos, solo se puede avanzar en el sentido de las flechas: elige un destino que esté
+        a la derecha de ${N(o)} en el dibujo del grafo.</p>`;
     }
 
     html += `<p>Se retrocede desde el destino siguiendo el predecesor de cada etiqueta vigente:</p><ul>`;
@@ -920,9 +937,9 @@
       if (esResultado) {
         const d = res.distancias[v];
         const preds = res.predecesores[v];
-        const texto = Number.isFinite(d)
-          ? `[${d}, ${preds.length ? preds.map(N).join('/') : '–'}]`
-          : '<span class="inf">∞ (sin camino)</span>';
+        const texto = !res.fijados[v]
+          ? (Number.isFinite(d) ? '<span class="inf">no se fijó (no hizo falta)</span>' : '<span class="inf">∞ (no se alcanzó)</span>')
+          : `[${d}, ${preds.length ? preds.map(N).join('/') : '–'}]`;
         tbody += `<td class="col--resultado">${texto}</td>`;
       }
       tbody += '</tr>';
@@ -948,8 +965,11 @@
     const o = res.origen;
     const flecha = '<svg class="ruta__f" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
+    // Solo los vértices fijados tienen distancia mínima definitiva
     const distancias = res.distancias.map((dist, v) =>
-      `<span class="distancias__item ${v === d ? 'distancias__item--destino' : ''}">${N(v)}: ${Number.isFinite(dist) ? dist : '∞'}</span>`
+      res.fijados[v]
+        ? `<span class="distancias__item ${v === d ? 'distancias__item--destino' : ''}">${N(v)}: ${dist}</span>`
+        : ''
     ).join('');
 
     if (!estado.caminos.length) {
@@ -988,7 +1008,7 @@
           ${total > 1 ? `<p class="resultado__eleccion">Las ${total} rutas cuestan ${costo}: se puede elegir cualquiera, ${total === 2 ? 'ambas son' : 'todas son'} una respuesta correcta.</p>` : ''}
         </div>
       </div>
-      <p class="resultado__nota">Distancias mínimas desde ${N(o)} hacia cada vértice:</p>
+      <p class="resultado__nota">Distancias mínimas de los vértices fijados desde ${N(o)} (el algoritmo se detuvo al fijar ${N(d)}):</p>
       <div class="distancias">${distancias}</div>`;
     dom.resultado.hidden = false;
   }
@@ -1041,8 +1061,8 @@
     const id = `vp-flecha-${idx}`;
     const n = caso.matriz.length;
     const nombres = Matriz.nombres(n);
-    const pos = Grafo.distribucionPorColumnas(n, { ancho: 320, alto: 240, margenX: 24, margenY: 40, ajusteY: 0 });
-    const res = Dijkstra.resolver(caso.matriz, caso.origen);
+    const pos = Grafo.distribucionPorColumnas(n, Matriz.ordenTopologico(caso.matriz), { ancho: 320, alto: 240, margenX: 24, margenY: 40, ajusteY: 0 });
+    const res = Dijkstra.resolver(caso.matriz, caso.origen, caso.destino);
     const enRuta = new Set();
     Dijkstra.caminos(res, caso.destino).forEach((c) => c.slice(1).forEach((v, k) => enRuta.add(`${c[k]}-${v}`)));
 

@@ -303,3 +303,6 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* Narración: vértices adyacentes ya fijados */
+.nota-fijados { color: var(--muted); font-size: .92em; }
